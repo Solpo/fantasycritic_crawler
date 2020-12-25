@@ -1,5 +1,5 @@
 import asyncio, json, gspread
-from pyppeteer import launch
+# from pyppeteer import launch
 
 async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
     elem = await page.querySelector(paikka)
@@ -59,37 +59,29 @@ def tallenna_pelaajat(tiedostonnimi: str, pelaajat: list):
             f.write("\n")
 
 def lataa_pelaajat(tiedostonnimi: str) -> list:
-    palautettavat = []
+    ladatut = []
     with open(tiedostonnimi) as f:
         for rivi in f:
             lisattava = eval(rivi)
-            palautettavat.append(lisattava)
+            ladatut.append(lisattava)
+    palautettavat = []
+    for pelaaja in ladatut:
+        lisattava = Julkaisija(pelaaja["numero"])
+        lisattava.nimi = pelaaja["nimi"]
+        lisattava.pelit = pelaaja["pelit"]
+        lisattava.kokonaispisteet = pelaaja["kokonaispisteet"]
+        palautettavat.append(lisattava)
+        print("Printataan lisattava")
+        print(lisattava)
+
     return palautettavat
 
-def tallenna_sheetsiin_dictista(pelaajat: list):
-    gc = gspread.oauth()
-    sh = gc.open_by_key("1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
-    ws = sh.worksheet("Sheet1")
-    pelit = []
-    
-    for i in range(len(pelaajat[0]["pelit"])):
-        rivi = []
-        for j in range(len(pelaajat)):
-            rivi.extend([pelaajat[j]["pelit"][i][0]])
-            rivi.extend([pelaajat[j]["pelit"][i][1]])
-            rivi.extend([pelaajat[j]["pelit"][i][2]])
-            rivi.append("")
-        pelit.append(rivi)
-        # pelit.append([pelaajat[j][pelit][i][0], pelaajat[j][pelit][i][1], pelaajat[j][pelit][i][2] for j in range(1, 4)])
-
-    ws.update("A3:AZ1000", pelit, major_dimension="ROWS")
-    
 def tallenna_sheetsiin_olioista(pelaajat: list):
     gc = gspread.oauth()
     sh = gc.open_by_key("1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
     ws = sh.worksheet("Sheet1")
     pelit = []
-    
+
     for i in range(len(pelaajat[0].pelit)):
         rivi = []
         for j in range(len(pelaajat)):
@@ -101,6 +93,9 @@ def tallenna_sheetsiin_olioista(pelaajat: list):
         # pelit.append([pelaajat[j][pelit][i][0], pelaajat[j][pelit][i][1], pelaajat[j][pelit][i][2] for j in range(1, 4)])
 
     ws.update("A3:AZ1000", pelit, major_dimension="ROWS")
+
+def vertaa_pelaajalistoja(eka_lista: list, toka_lista: list):
+    pass
 
 async def main():
     browser = await launch(executablePath='/usr/bin/chromium')
@@ -117,14 +112,14 @@ async def main():
 
     tallenna_sheetsiin_olioista(pelaajat)
 
-    # tallenna_pelaajat("test2.txt", pelaajat)
 
-    # print("ladataan pelaajat")
-    # ladatut = lataa_pelaajat("test2.txt")
+    print("ladataan pelaajat")
+    ladatut = lataa_pelaajat("test2.txt")
 
-    
+    tallenna_pelaajat("test2.txt", pelaajat)
 
-    await browser.close()
+
+    # await browser.close()
 
 
 
@@ -137,3 +132,25 @@ asyncio.get_event_loop().run_until_complete(main())
 #     nimi_elem = await page.querySelector(f"div.col-xl-6:nth-child({numero_str}) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)")
 #     kokonaispisteet_elem = await page.querySelector(f"div.col-xl-6:nth-child({numero_str}) > div:nth-child(1) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child(16) > td:nth-child(2)")
 #     kriitikot = await page.evaluate('(element) => element.textContent', kriitikot_elem)
+
+
+
+
+
+
+# Tästä taisi tulla turha kun pelaajat ladataan olioina
+# def tallenna_sheetsiin_dictista(pelaajat: list):
+#     gc = gspread.oauth()
+#     sh = gc.open_by_key("1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
+#     ws = sh.worksheet("Sheet1")
+#     pelit = []
+
+#     for i in range(len(pelaajat[0]["pelit"])):
+#         rivi = []
+#         for j in range(len(pelaajat)):
+#             rivi.extend([pelaajat[j]["pelit"][i][0]])
+#             rivi.extend([pelaajat[j]["pelit"][i][1]])
+#             rivi.extend([pelaajat[j]["pelit"][i][2]])
+#             rivi.append("")
+#         pelit.append(rivi)
+    # ws.update("A3:AZ1000", pelit, major_dimension="ROWS")
