@@ -75,9 +75,9 @@ def lataa_pelaajat(tiedostonnimi: str) -> list:
 
     return palautettavat
 
-def tallenna_sheetsiin_olioista(pelaajat: list, peleja: int):
+def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     gc = gspread.oauth()
-    sh = gc.open_by_key("1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
+    sh = gc.open_by_key(sheet)
     paiva = datetime.now().strftime("%d.%m.%Y")
     try:
         ws = sh.add_worksheet(title=paiva, rows=str(peleja + 5), cols=str(len(pelaajat) * 4))
@@ -100,7 +100,6 @@ def tallenna_sheetsiin_olioista(pelaajat: list, peleja: int):
     counterpickit = []
     for i in range(len(pelaajat)):
         counterpickit.extend([[f"counter-pick: {pelaajat[i].counterpick[0]}"], [pelaajat[i].counterpick[1]], [pelaajat[i].counterpick[2]], []])   
-    print(counterpickit)
 
     ws.update("A1:1", nimirivi, major_dimension="COLUMNS")
     ws.update("A3:AZ1000", pelit, major_dimension="ROWS")
@@ -113,11 +112,7 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     if len(vanhojen_lista) != len(uusien_lista):
         print("Vertailtavat listat eripituiset")
         return ["Virhe"]
-    for i in range(len(vanhojen_lista)):
-        if vanhojen_lista[i].nimi != uusien_lista[i].nimi:
-            print("Pelaajat eivät mätsää listoja vertaillessa")
-            return ["Virhe"]
-
+    
     vanha_tilanne = sorted([(kisailija.nimi, kisailija.kokonaispisteet) for kisailija in vanhojen_lista], key=lambda p: p[1], reverse=True)
     uusi_tilanne = sorted([(kisailija.nimi, kisailija.kokonaispisteet) for kisailija in uusien_lista], key=lambda p: p[1], reverse=True)
     if vanha_tilanne != uusi_tilanne:
@@ -136,77 +131,45 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
             kerrottava += f"Pelaajalla {vanhojen_lista[i].nimi} on uusia pelejä!:\n"
             for peli in uusien_lista[i].pelit[len(vanhojen_lista[i].pelit):]:
                 kerrottava += f"{peli[0]}\n"
-        palaute.append(kerrottava)
+        if kerrottava != "":
+            palaute.append(kerrottava)
     
     return palaute
 
 
 async def main():
+    
+    # Määrittele manuaalisesti, paljonko pelaajia ja pelejä on ja mitkä ovat liigan ja sheetin osoitteet
+    # tekstitiedosto, liiga, pelaajia, peleja, sheet = ("apsri_liiga.txt", \
+    #     "https://www.fantasycritic.games/league/75a11364-2afc-4ef8-ba4c-318a4fa4bfba/2020", \
+    #     7, 11, "18iMJeePVZlNuVpgBZB9ArS19szhAtM4kKYtBpOZNiC0")
+    tekstitiedosto, liiga, pelaajia, peleja, sheet = ("kxp_liiga.txt", \
+        "https://www.fantasycritic.games/league/fb4b4799-2b50-45d1-803b-658a7dddf3f6/2020", \
+        3, 14, "1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
+    print(f"Käsitellään liiga {tekstitiedosto}")
     browser = await launch(executablePath='/usr/bin/chromium')
     page = await browser.newPage()
-    # kissoja ja pelailua
-    # await page.goto("https://www.fantasycritic.games/league/fb4b4799-2b50-45d1-803b-658a7dddf3f6/2020")
-    # apsri
-    await page.goto("https://www.fantasycritic.games/league/75a11364-2afc-4ef8-ba4c-318a4fa4bfba/2020")
     
-
-    # Määrittele manuaalisesti, paljonko pelaajia ja pelejä per pelaaja on
-    pelaajia = 7
-    peleja = 11
+    await page.goto(liiga)
+    
     pelaajat = []
     for pelaajan_nro in range(1, pelaajia + 1):
         pelaajat.append(Julkaisija(pelaajan_nro))
         await pelaajat[pelaajan_nro - 1].init(page, peleja)
 
+    # Tämä kannattaa poiskommentoida uutta liigaa aloittaessa, jotta saa initialisoitua tulostiedoston
+    # tallenna_pelaajat(tekstitiedosto, pelaajat)
+
+    ladatut = lataa_pelaajat(tekstitiedosto)
     
-    # print("netistä pelaajat:")
-    # print(pelaajat)
-
-
-    ladatut = lataa_pelaajat("test2.txt")
-    
-    # print("levyltä ladatut pelaajat pelaajat")
-    # print(ladatut)
-
     vertailun_palaute = vertaa_pelaajalistoja(ladatut, pelaajat)
-    for k in vertailun_palaute:
-        print(k)
+    print(vertailun_palaute)
+    # for k in vertailun_palaute:
+    #     print(k)
 
-    tallenna_pelaajat("test2.txt", pelaajat)
-    tallenna_sheetsiin_olioista(pelaajat, peleja)
+    tallenna_pelaajat(tekstitiedosto, pelaajat)
+    tallenna_sheetsiin_olioista(sheet, pelaajat, peleja)
 
-    # await browser.close()
-
-
+    await browser.close()
 
 asyncio.get_event_loop().run_until_complete(main())
-
-
-# async def hae_pelaaja(numero: int) -> dict:
-#     numero_str = str(numero)
-#     pelaaja_dict= {}
-#     nimi_elem = await page.querySelector(f"div.col-xl-6:nth-child({numero_str}) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)")
-#     kokonaispisteet_elem = await page.querySelector(f"div.col-xl-6:nth-child({numero_str}) > div:nth-child(1) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child(16) > td:nth-child(2)")
-#     kriitikot = await page.evaluate('(element) => element.textContent', kriitikot_elem)
-
-
-
-
-
-
-# Tästä taisi tulla turha kun pelaajat ladataan olioina
-# def tallenna_sheetsiin_dictista(pelaajat: list):
-#     gc = gspread.oauth()
-#     sh = gc.open_by_key("1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
-#     ws = sh.worksheet("Sheet1")
-#     pelit = []
-
-#     for i in range(len(pelaajat[0]["pelit"])):
-#         rivi = []
-#         for j in range(len(pelaajat)):
-#             rivi.extend([pelaajat[j]["pelit"][i][0]])
-#             rivi.extend([pelaajat[j]["pelit"][i][1]])
-#             rivi.extend([pelaajat[j]["pelit"][i][2]])
-#             rivi.append("")
-#         pelit.append(rivi)
-    # ws.update("A3:AZ1000", pelit, major_dimension="ROWS")
