@@ -79,10 +79,12 @@ def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     gc = gspread.oauth()
     sh = gc.open_by_key(sheet)
     paiva = datetime.now().strftime("%d.%m.%Y")
+    vuosi = datetime.now().strftime("%Y")
+
     try:
-        ws = sh.add_worksheet(title=paiva, rows=str(peleja + 5), cols=str(len(pelaajat) * 4))
+        ws = sh.worksheet(vuosi)
     except:
-        ws = sh.add_worksheet(title=paiva + "vara_kakkonen", rows=str(peleja + 5), cols=str(len(pelaajat) * 4))
+        ws = sh.add_worksheet(title=vuosi, rows=str(peleja + 5), cols=str(len(pelaajat) * 4))
     pelit = []
 
     for i in range(len(pelaajat[0].pelit)):
@@ -104,8 +106,25 @@ def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     ws.update("A1:1", nimirivi, major_dimension="COLUMNS")
     ws.update("A3:AZ1000", pelit, major_dimension="ROWS")
     ws.update(f"A{peleja + 4}:{peleja + 4}", counterpickit, major_dimension="COLUMNS")
-    ws_pois = sh.get_worksheet(0)
-    sh.del_worksheet(ws_pois)
+    
+    
+    try:
+        ws_kertyma = sh.worksheet(f"{vuosi}_kertyma")
+    except:
+        ws_kertyma = sh.add_worksheet(title=f"{vuosi}_kertyma", rows="100", cols=str(len(pelaajat) + 2))
+    kertyman_nimirivi = [["Päivämäärä"]]
+    for i in range(len(pelaajat)):
+        kertyman_nimirivi.append([pelaajat[i].nimi])
+    
+
+    ws_kertyma.update("A1:1", kertyman_nimirivi, major_dimension="COLUMNS")
+    sarakkeet_list = list(filter(None, ws_kertyma.col_values(1)))
+    eka_tyhja_rivi = str(len(sarakkeet_list)+1)
+    paivan_pisteet = [[paiva]]
+    for i in range(len(pelaajat)):
+        paivan_pisteet.append([pelaajat[i].kokonaispisteet])
+    ws_kertyma.update(f"A{eka_tyhja_rivi}:{eka_tyhja_rivi}", paivan_pisteet, major_dimension="COLUMNS")
+
 
 def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     palaute = []
