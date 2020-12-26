@@ -1,5 +1,4 @@
-import asyncio, json, gspread
-from datetime import datetime
+import asyncio, json, gspread, datetime, ast
 from pyppeteer import launch
 
 async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
@@ -78,8 +77,8 @@ def lataa_pelaajat(tiedostonnimi: str) -> list:
 def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     gc = gspread.oauth()
     sh = gc.open_by_key(sheet)
-    paiva = datetime.now().strftime("%d.%m.%Y")
-    vuosi = datetime.now().strftime("%Y")
+    paiva = datetime.datetime.now().strftime("%d.%m.%Y")
+    vuosi = datetime.datetime.now().strftime("%Y")
 
     try:
         ws = sh.worksheet(vuosi)
@@ -162,32 +161,38 @@ async def main():
     # tekstitiedosto, liiga, pelaajia, peleja, sheet = ("apsri_liiga.txt", \
     #     "https://www.fantasycritic.games/league/75a11364-2afc-4ef8-ba4c-318a4fa4bfba/2020", \
     #     7, 11, "18iMJeePVZlNuVpgBZB9ArS19szhAtM4kKYtBpOZNiC0")
-    tekstitiedosto, liiga, pelaajia, peleja, sheet = ("kxp_liiga.txt", \
-        "https://www.fantasycritic.games/league/fb4b4799-2b50-45d1-803b-658a7dddf3f6/2020", \
-        3, 14, "1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
-    print(f"Käsitellään liiga {tekstitiedosto}")
+    with open("kxp_asetukset.txt") as f:
+        asetukset = json.loads(f.read())
+    
+    
+    print(f"Käsitellään liiga {asetukset['liiga']}")
     browser = await launch(executablePath='/usr/bin/chromium')
     page = await browser.newPage()
     
-    await page.goto(liiga)
+    await page.goto(asetukset["liiga"])
     
     pelaajat = []
-    for pelaajan_nro in range(1, pelaajia + 1):
+    for pelaajan_nro in range(1, asetukset["pelaajia"] + 1):
         pelaajat.append(Julkaisija(pelaajan_nro))
-        await pelaajat[pelaajan_nro - 1].init(page, peleja)
+        await pelaajat[pelaajan_nro - 1].init(page, asetukset["peleja"])
 
-    # Tämä kannattaa poiskommentoida uutta liigaa aloittaessa, jotta saa initialisoitua tulostiedoston
-    # tallenna_pelaajat(tekstitiedosto, pelaajat)
-
-    ladatut = lataa_pelaajat(tekstitiedosto)
+    tallenna_sheetsiin_olioista(asetukset["sheet"], pelaajat, asetukset["peleja"])
     
-    vertailun_palaute = vertaa_pelaajalistoja(ladatut, pelaajat)
-    print(vertailun_palaute)
-    # for k in vertailun_palaute:
-    #     print(k)
+    
+    # # Poiskommentoi tämä uutta liigaa aloittaessa, jotta saatinitialisoitua tulostiedoston
+    # tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
 
-    tallenna_pelaajat(tekstitiedosto, pelaajat)
-    tallenna_sheetsiin_olioista(sheet, pelaajat, peleja)
+    # tulospostaukset sunnuntaisin
+    if datetime.datetime.today().weekday() == 6:
+        ladatut = lataa_pelaajat(asetukset["tekstitiedosto"])
+
+        vertailun_palaute = vertaa_pelaajalistoja(ladatut, pelaajat)
+        print(vertailun_palaute)
+        if vertailun_palaute != []:
+            # some tänne
+            pass
+
+        tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
 
     await browser.close()
 
