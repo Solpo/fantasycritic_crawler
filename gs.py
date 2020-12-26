@@ -1,8 +1,5 @@
-import gspread
+eka_lista = [(1, 2), (3, 4), (5, 6)]
+toka_lista = [(1, 2), (3, 4)]
 
-gc = gspread.oauth()
-
-sh = gc.open_by_key("1GnBiI_bkm2dT5CY4XmPbN7rIQDRotL96P_3i-cAOF2c")
-
-
-print(sh.sheet1.get('A1'))
+kolmas_lista = eka_lista - toka_lista
+print(kolmas_lista)

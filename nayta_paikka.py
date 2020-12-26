@@ -12,8 +12,8 @@ async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
 async def main():
     browser = await launch(executablePath='/usr/bin/chromium')
     page = await browser.newPage()
-    # await page.goto('https://www.fantasycritic.games/league/fb4b4799-2b50-45d1-803b-658a7dddf3f6/2020')
-    await page.goto('https://www.fantasycritic.games/league/c5a1211e-cfd3-423c-9936-915c1da93569/2021')
+    # kissoja ja pelailua
+    await page.goto('https://www.fantasycritic.games/league/fb4b4799-2b50-45d1-803b-658a7dddf3f6/2020')
     
     
     while True:
