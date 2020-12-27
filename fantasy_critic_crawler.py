@@ -1,4 +1,4 @@
-import asyncio, json, gspread, datetime, ast
+import asyncio, json, gspread, datetime, ast, sys
 from pyppeteer import launch
 
 async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
@@ -81,9 +81,12 @@ def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     vuosi = datetime.datetime.now().strftime("%Y")
 
     try:
+        print("Pitäisi löytyä vuosi-seetti, valitaan se")
         ws = sh.worksheet(vuosi)
     except:
+        print("Ei löydy vuosi-sheettiä, luodaan se")
         ws = sh.add_worksheet(title=vuosi, rows=str(peleja + 5), cols=str(len(pelaajat) * 4))
+    
     pelit = []
 
     for i in range(len(pelaajat[0].pelit)):
@@ -108,9 +111,12 @@ def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     
     
     try:
+        print("valitaan kertymä-sheetti")
         ws_kertyma = sh.worksheet(f"{vuosi}_kertyma")
     except:
-        ws_kertyma = sh.add_worksheet(title=f"{vuosi}_kertyma", rows="100", cols=str(len(pelaajat) + 2))
+        print("Ei löytynyt kertymä-sheettiä, luodaan sellainen")
+        ws_kertyma = sh.add_worksheet(title=f"{vuosi}_kertyma", rows="380", cols=str(len(pelaajat) + 2))
+
     kertyman_nimirivi = [["Päivämäärä"]]
     for i in range(len(pelaajat)):
         kertyman_nimirivi.append([pelaajat[i].nimi])
@@ -157,15 +163,11 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
 
 async def main():
     
-    # Määrittele manuaalisesti, paljonko pelaajia ja pelejä on ja mitkä ovat liigan ja sheetin osoitteet
-    # tekstitiedosto, liiga, pelaajia, peleja, sheet = ("apsri_liiga.txt", \
-    #     "https://www.fantasycritic.games/league/75a11364-2afc-4ef8-ba4c-318a4fa4bfba/2020", \
-    #     7, 11, "18iMJeePVZlNuVpgBZB9ArS19szhAtM4kKYtBpOZNiC0")
-    with open("kxp_asetukset.txt") as f:
+    with open(sys.argv[1]) as f:
         asetukset = json.loads(f.read())
     
     
-    print(f"Käsitellään liiga {asetukset['liiga']}")
+    print(f"Käsitellään liiga {asetukset}")
     browser = await launch(executablePath='/usr/bin/chromium')
     page = await browser.newPage()
     
@@ -176,6 +178,7 @@ async def main():
         pelaajat.append(Julkaisija(pelaajan_nro))
         await pelaajat[pelaajan_nro - 1].init(page, asetukset["peleja"])
 
+    print(f"Mennään sheetsiin, sheet {asetukset['sheet']}")
     tallenna_sheetsiin_olioista(asetukset["sheet"], pelaajat, asetukset["peleja"])
     
     
