@@ -171,7 +171,7 @@ async def main():
     with open(sys.argv[1]) as f:
         asetukset = json.loads(f.read())
     
-    print(f"Käsitellään liiga {asetukset}")
+    print(f"Käsitellään liiga {sys.argv[1]}")
     browser = await launch(executablePath='/usr/bin/chromium')
     page = await browser.newPage()
     
