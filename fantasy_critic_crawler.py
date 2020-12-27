@@ -1,5 +1,5 @@
 import asyncio, json, gspread, datetime, ast, sys
-from twilio.rest import Client
+# from twilio.rest import Client
 from pyppeteer import launch
 
 async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
@@ -157,14 +157,14 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     
     return palaute
 
-def postaa_whatsappiin(viesti: str):
-    with open("twilio.txt") as f:
-        twiliot = json.loads(f.read())
-    client = Client(twiliot["sid"], twiliot["token"])
+# def postaa_whatsappiin(viesti: str):
+#     with open("twilio.txt") as f:
+#         twiliot = json.loads(f.read())
+#     client = Client(twiliot["sid"], twiliot["token"])
 
-    message = client.messages.create(body = viesti,
-                                    from_='whatsapp:+14155238886',
-                                    to='whatsapp:+358453453585')
+#     message = client.messages.create(body = viesti,
+#                                     from_='whatsapp:+14155238886',
+#                                     to='whatsapp:+3581231231231')
 
 async def main():
     
@@ -196,9 +196,9 @@ async def main():
         print(vertailun_palaute)
         if vertailun_palaute != []:
             # some tänne
-            print(f"Whatsappiin lähtee {str(pelaajat)}")
-            postaa_whatsappiin(str(pelaajat))
-            
+            # print(f"Whatsappiin lähtee {str(pelaajat)}")
+            # postaa_whatsappiin(str(pelaajat))
+            pass
 
         tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
     await browser.close()
