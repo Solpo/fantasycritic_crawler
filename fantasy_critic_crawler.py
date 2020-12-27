@@ -1,4 +1,5 @@
 import asyncio, json, gspread, datetime, ast, sys
+from twilio.rest import Client
 from pyppeteer import launch
 
 async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
@@ -81,10 +82,8 @@ def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     vuosi = datetime.datetime.now().strftime("%Y")
 
     try:
-        print("Pitäisi löytyä vuosi-seetti, valitaan se")
         ws = sh.worksheet(vuosi)
     except:
-        print("Ei löydy vuosi-sheettiä, luodaan se")
         ws = sh.add_worksheet(title=vuosi, rows=str(peleja + 5), cols=str(len(pelaajat) * 4))
     
     pelit = []
@@ -111,10 +110,8 @@ def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     
     
     try:
-        print("valitaan kertymä-sheetti")
         ws_kertyma = sh.worksheet(f"{vuosi}_kertyma")
     except:
-        print("Ei löytynyt kertymä-sheettiä, luodaan sellainen")
         ws_kertyma = sh.add_worksheet(title=f"{vuosi}_kertyma", rows="380", cols=str(len(pelaajat) + 2))
 
     kertyman_nimirivi = [["Päivämäärä"]]
@@ -160,12 +157,19 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     
     return palaute
 
+def postaa_whatsappiin(viesti: str):
+    with open("twilio.txt") as f:
+        twiliot = json.loads(f.read())
+    client = Client(twiliot["sid"], twiliot["token"])
+
+    message = client.messages.create(body = viesti,
+                                    from_='whatsapp:+14155238886',
+                                    to='whatsapp:+358453453585')
 
 async def main():
     
     with open(sys.argv[1]) as f:
         asetukset = json.loads(f.read())
-    
     
     print(f"Käsitellään liiga {asetukset}")
     browser = await launch(executablePath='/usr/bin/chromium')
@@ -178,7 +182,6 @@ async def main():
         pelaajat.append(Julkaisija(pelaajan_nro))
         await pelaajat[pelaajan_nro - 1].init(page, asetukset["peleja"])
 
-    print(f"Mennään sheetsiin, sheet {asetukset['sheet']}")
     tallenna_sheetsiin_olioista(asetukset["sheet"], pelaajat, asetukset["peleja"])
     
     
@@ -193,10 +196,11 @@ async def main():
         print(vertailun_palaute)
         if vertailun_palaute != []:
             # some tänne
-            pass
+            print(f"Whatsappiin lähtee {str(pelaajat)}")
+            postaa_whatsappiin(str(pelaajat))
+            
 
         tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
-
     await browser.close()
 
 asyncio.get_event_loop().run_until_complete(main())
