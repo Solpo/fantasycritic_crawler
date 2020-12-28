@@ -228,7 +228,7 @@ async def main():
         
 
         # tänne viikottaiset spämmikoosteet:
-        if datetime.datetime.today().weekday() == 0:
+        if datetime.datetime.today().weekday() == 6:
             ladatut_vko = lataa_pelaajat("vko_" + asetukset["tekstitiedosto"])
             vertailun_palaute_vko = vertaa_pelaajalistoja(ladatut_vko, pelaajat)
             if vertailun_palaute_vko != []:
