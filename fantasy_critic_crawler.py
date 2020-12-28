@@ -1,4 +1,4 @@
-import asyncio, json, gspread, datetime, ast, sys
+import asyncio, json, gspread, datetime, ast, sys, tweepy
 # from twilio.rest import Client
 from pyppeteer import launch
 
@@ -143,7 +143,7 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
             vanha_ranking += f"{p[0]}, {p[1]} pistettä\n"
         for p in uusi_tilanne:
             uusi_ranking += f"{p[0]}, {p[1]} pistettä\n"
-        kerrottava = f"Pistetilanne päivittynyt!\nVanha tilanne:\n{vanha_ranking}\nUusi tilanne:\n{uusi_ranking}"
+        kerrottava = f"Pistetilanne päivittynyt!\n\nUusi tilanne:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
         palaute.append(kerrottava)
     
     for i in range(len(vanhojen_lista)):
@@ -156,6 +156,27 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
             palaute.append(kerrottava)
     
     return palaute
+
+def twiittaa(teksti: str, api: 'tweepy.api.API'):
+    if len(teksti) <= 280:
+        api.update_status(teksti)
+    else:
+        pilkottu = teksti.split("\n")
+        postattavat = []
+        while sum([len(patka) + len(pilkottu) - 1 for patka in pilkottu]) > 280:
+            yksittainen_twiitti = ""
+            while True:
+                yksittainen_twiitti += pilkottu[0] + "\n"
+                pilkottu.pop(0)
+                if len(pilkottu) == 0 or len(yksittainen_twiitti) + len(pilkottu[0]) > 279:
+                    break
+            postattavat.append(yksittainen_twiitti)
+        postattavat.append("\n".join(pilkottu))
+        edellinen_postattu = api.update_status(postattavat[0])
+        for postattava in postattavat[1:]:
+            edellinen_postattu = api.update_status(status=postattava, 
+                                 in_reply_to_status_id=edellinen_postattu.id, 
+                                 auto_populate_reply_metadata=True)
 
 # def postaa_whatsappiin(viesti: str):
 #     with open("twilio.txt") as f:
@@ -171,7 +192,7 @@ async def main():
     with open(sys.argv[1]) as f:
         asetukset = json.loads(f.read())
     
-    print(f"Käsitellään liiga {sys.argv[1]}")
+    print(f"Käsitellään liiga {asetukset['nimi']}")
     browser = await launch(executablePath='/usr/bin/chromium')
     page = await browser.newPage()
     
@@ -182,25 +203,42 @@ async def main():
         pelaajat.append(Julkaisija(pelaajan_nro))
         await pelaajat[pelaajan_nro - 1].init(page, asetukset["peleja"])
 
-    tallenna_sheetsiin_olioista(asetukset["sheet"], pelaajat, asetukset["peleja"])
+    await browser.close()
     
+    tallenna_sheetsiin_olioista(asetukset["sheet"], pelaajat, asetukset["peleja"])
     
     # # Poiskommentoi tämä uutta liigaa aloittaessa, jotta saatinitialisoitua tulostiedoston
     # tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
+    
+    ladatut = lataa_pelaajat(asetukset["tekstitiedosto"])
+    vertailun_palaute = vertaa_pelaajalistoja(ladatut, pelaajat)
 
-    # tulospostaukset sunnuntaisin
-    if datetime.datetime.today().weekday() == 6:
-        ladatut = lataa_pelaajat(asetukset["tekstitiedosto"])
+    if vertailun_palaute != []:
+        print(f"Muutoksia tilanteessa: {vertailun_palaute}")
+        
+        # postailut someen
+        with open("twitter_keys.txt") as f:
+            avaimet = ast.literal_eval(f.read())
+        auth = tweepy.OAuthHandler(avaimet["API_key"], avaimet["API_secret"])
+        auth.set_access_token(avaimet["access_token"], avaimet["access_secret"])
+        api = tweepy.API(auth, wait_on_rate_limit=True,
+            wait_on_rate_limit_notify=True)
+        for i in vertailun_palaute:
+            twiittaa(f"{asetukset['nimi']}:\n{i}", api)
+        
 
-        vertailun_palaute = vertaa_pelaajalistoja(ladatut, pelaajat)
-        print(vertailun_palaute)
-        if vertailun_palaute != []:
-            # some tänne
-            # print(f"Whatsappiin lähtee {str(pelaajat)}")
-            # postaa_whatsappiin(str(pelaajat))
+        # tänne viikottaiset spämmikoosteet:
+        if datetime.datetime.today().weekday() == 0:
+            ladatut_vko = lataa_pelaajat("vko_" + asetukset["tekstitiedosto"])
+            vertailun_palaute_vko = vertaa_pelaajalistoja(ladatut_vko, pelaajat)
+            if vertailun_palaute_vko != []:
+                # print(f"Whatsappiin lähtee {str(pelaajat)}")
+                # postaa_whatsappiin(str(pelaajat))
+                # tms viikkospämmi
+                pass
+            tallenna_pelaajat("vko_" + asetukset["tekstitiedosto"], pelaajat)
             pass
-
-        tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
-    await browser.close()
+        
+    tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
 
 asyncio.get_event_loop().run_until_complete(main())
