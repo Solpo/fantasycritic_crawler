@@ -172,11 +172,17 @@ def twiittaa(teksti: str, api: 'tweepy.api.API'):
                     break
             postattavat.append(yksittainen_twiitti)
         postattavat.append("\n".join(pilkottu))
-        edellinen_postattu = api.update_status(postattavat[0])
+        
+        edellinen_postattu = api.update_status(postattavat[0]).id
         for postattava in postattavat[1:]:
             edellinen_postattu = api.update_status(status=postattava, 
                                  in_reply_to_status_id=edellinen_postattu.id, 
                                  auto_populate_reply_metadata=True)
+        
+        # tai sitten näin
+        # for postattava in postattavat:
+        #     api.update_status(postattava)
+        
 
 # def postaa_whatsappiin(viesti: str):
 #     with open("twilio.txt") as f:
