@@ -1,10 +1,6 @@
-import asyncio, json, gspread, datetime, ast, sys, tweepy
+import asyncio, json, gspread, datetime, ast, sys, tweepy, time
 # from twilio.rest import Client
 from pyppeteer import launch
-
-async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
-    elem = await page.querySelector(paikka)
-    return await page.evaluate('(element) => element.textContent', elem)
 
 class Julkaisija:
     def __init__(self, numero: int):
@@ -12,14 +8,15 @@ class Julkaisija:
         self.numero_str = str(numero)
 
     async def init(self, page: "Page", peleja: int):
-        self.nimi = (await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)", page)).strip()
-        self.kokonaispisteet = int(await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(1) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({str(peleja + 2)}) > td:nth-child(2)", page))
-
+        # print(f"Haetaan pelaajan nimi, peleja on {peleja}")
+        self.nimi = (await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)", page)).strip()
+        self.kokonaispisteet = int(await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({str(peleja + 2)}) > td:nth-child(2)", page))
         self.pelit = []
         for i in range(1, peleja + 1):
             pelin_nimi, kriitikot, pisteet = await self.pelin_tiedot(self.numero, i, page)
-            if pelin_nimi == "":
+            if pelin_nimi == None:
                 break
+            # print(f"Lisätään pelaajan pelilistaan {pelin_nimi}, {kriitikot}, {pisteet}")
             self.pelit.append([pelin_nimi, kriitikot, pisteet])
 
         self.counterpick = await self.pelin_tiedot(self.numero, peleja + 1, page)
@@ -35,23 +32,37 @@ class Julkaisija:
         pelaaja_str = str(pelaaja)
         peli_str = str(peli)
         try:
-            paikka = f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(1) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child(1) > span:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(1) > span:nth-child(2)"
+            paikka = f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child(1) > span:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(1) > span:nth-child(2)"
             pelin_nimi = await paikka_tekstiksi(paikka, page)
             pelin_nimi = pelin_nimi.strip()
         except:
-            print("Ei peliä tässä kohtaa")
             return (None, None, None)
         if pelin_nimi == "":
             return (None, None, None)
 
-        kriitikot_paikka, pisteet_paikka = [f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(1) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child({sarake})" for sarake in range(2, 4)]
+        # print("Tsekataan kriitikoiden ja pisteiden paikka")
+        kriitikot_paikka, pisteet_paikka = [f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child({sarake})" for sarake in range(2, 4)]
+        # print("Haetaan kriitikoiden pisteet")
         kriitikot = await paikka_tekstiksi(kriitikot_paikka, page)
+        # print(f"Jotka ovat {kriitikot}")
+        # print("Haetaan fantasy-pisteet")
         pisteet = await paikka_tekstiksi(pisteet_paikka, page)
-        kriitikot = int(kriitikot) if kriitikot != "--" else 0
-        pisteet = int(pisteet) if pisteet != "--" else 0
+        # print(f"Jotka ovat {pisteet}")
+        kriitikot = int(kriitikot) if kriitikot != "--" and kriitikot != None else 0
+        pisteet = int(pisteet) if pisteet != "--" and pisteet != None else 0
         return (pelin_nimi, kriitikot, pisteet)
 
+async def paikka_tekstiksi(paikka: str, page: "Page") -> str:
+    elem = await page.querySelector(paikka)
+    if elem == None:
+        return None
+    else:
+        evaluoitu = await page.evaluate('(element) => element.textContent', elem)
+        # print(f"evaluoitu on {evaluoitu}")
+        return evaluoitu
+
 def tallenna_pelaajat(tiedostonnimi: str, pelaajat: list):
+    time.sleep(2)
     with open(tiedostonnimi, "w") as f:
         for p in pelaajat:
             dump = json.dumps(p.__dict__, ensure_ascii=False)
@@ -76,24 +87,43 @@ def lataa_pelaajat(tiedostonnimi: str) -> list:
     return palautettavat
 
 def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
+    print("oauthataan")
     gc = gspread.oauth()
     sh = gc.open_by_key(sheet)
     paiva = datetime.datetime.now().strftime("%d.%m.%Y")
     vuosi = datetime.datetime.now().strftime("%Y")
 
+    print("avataan vuoden worksheetti")
     try:
         ws = sh.worksheet(vuosi)
     except:
         ws = sh.add_worksheet(title=vuosi, rows=str(peleja + 5), cols=str(len(pelaajat) * 4))
     
     pelit = []
-
-    for i in range(len(pelaajat[0].pelit)):
+    print("Käsitellään pelit")
+    
+    # for pelaaja in pelaajat:
+    #     for i in range(len(pelaaja.pelit)):
+    #         rivi = []
+    #         rivi.extend(pelaaja.pelit[i])
+    #         rivi.append("")
+    #     pelit.append(rivi)
+    # print("Pelit:\n{pelit}")
+    # time.sleep(2)
+    
+    suurin_pelimaara = len(max(pelaajat, key= lambda p: len(p.pelit)).pelit)
+    print(f"Suurin pelimäärä on {suurin_pelimaara}")
+    
+    for i in range(suurin_pelimaara):
         rivi = []
         for j in range(len(pelaajat)):
-            rivi.extend(pelaajat[j].pelit[i])
+            if i < len(pelaajat[j].pelit):
+                rivi.extend(pelaajat[j].pelit[i])
+            else:
+                rivi.extend(["", "", ""])
             rivi.append("")
         pelit.append(rivi)
+
 
     nimirivi = []
     for i in range(len(pelaajat)):
@@ -104,6 +134,7 @@ def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     for i in range(len(pelaajat)):
         counterpickit.extend([[f"counter-pick: {pelaajat[i].counterpick[0]}"], [pelaajat[i].counterpick[1]], [pelaajat[i].counterpick[2]], []])   
 
+    print("Päivitetään worksheettiä")
     ws.update("A1:1", nimirivi, major_dimension="COLUMNS")
     ws.update("A3:AZ1000", pelit, major_dimension="ROWS")
     ws.update(f"A{peleja + 4}:{peleja + 4}", counterpickit, major_dimension="COLUMNS")
@@ -146,6 +177,7 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
         kerrottava = f"Pistetilanne päivittynyt!\n\nUusi tilanne:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
         palaute.append(kerrottava)
     
+    # TOgiDO - korjaa tätä
     for i in range(len(vanhojen_lista)):
         kerrottava = ""
         if len(vanhojen_lista[i].pelit) != len(uusien_lista[i].pelit):
@@ -206,17 +238,26 @@ async def main():
     
     pelaajat = []
     for pelaajan_nro in range(1, asetukset["pelaajia"] + 1):
+        # print(f"Käsitellään pelaaja {pelaajan_nro}")
         pelaajat.append(Julkaisija(pelaajan_nro))
         await pelaajat[pelaajan_nro - 1].init(page, asetukset["peleja"])
 
     await browser.close()
     
+    print("Käynnistetään tallenna sheetsiin olioista")
     tallenna_sheetsiin_olioista(asetukset["sheet"], pelaajat, asetukset["peleja"])
     
-    # # Poiskommentoi tämä uutta liigaa aloittaessa, jotta saatinitialisoitua tulostiedoston
-    # tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
-    
+
+    # Tämä allaoleva kokonaisuus ei ole uuden vuoden aloittamista ajatellen ihan
+    # suoraviivaisesti muokattavissa
+    print("ladataan vanhat")
     ladatut = lataa_pelaajat(asetukset["tekstitiedosto"])
+    
+    # Poiskommentoi tämä uutta liigaa aloittaessa, jotta saatinitialisoitua tulostiedoston
+    print("Tallennetaan uudet")
+    tallenna_pelaajat(asetukset["tekstitiedosto"], pelaajat)
+    
+    print("Vertaillaan")
     vertailun_palaute = vertaa_pelaajalistoja(ladatut, pelaajat)
 
     if vertailun_palaute != []:

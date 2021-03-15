@@ -1,3 +1,3 @@
-{"liiga": "https://www.fantasycritic.games/league/75a11364-2afc-4ef8-ba4c-318a4fa4bfba/2020",
-    "pelaajia": 7, "peleja": 11, "sheet": "18iMJeePVZlNuVpgBZB9ArS19szhAtM4kKYtBpOZNiC0",
+{"liiga": "https://www.fantasycritic.games/league/75a11364-2afc-4ef8-ba4c-318a4fa4bfba/2021",
+    "pelaajia": 7, "peleja": 13, "sheet": "17NXNBuyWTTm6tJRXng4vn3ZOQfmj81VKvd8qv0GV46Q",
     "tekstitiedosto": "apsri_liiga.txt", "nimi": "ApSri"}
