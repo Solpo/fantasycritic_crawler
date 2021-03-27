@@ -1,4 +1,4 @@
-import asyncio, json, gspread, datetime, ast, sys, tweepy, time
+import asyncio, json, gspread, datetime, ast, sys, tweepy, time, threader
 # from twilio.rest import Client
 from pyppeteer import launch
 
@@ -88,7 +88,7 @@ def lataa_pelaajat(tiedostonnimi: str) -> list:
 
 def tallenna_sheetsiin_olioista(sheet: str, pelaajat: list, peleja: int):
     print("oauthataan")
-    gc = gspread.oauth()
+    gc = gspread.service_account()
     sh = gc.open_by_key(sheet)
     paiva = datetime.datetime.now().strftime("%d.%m.%Y")
     vuosi = datetime.datetime.now().strftime("%Y")
@@ -171,13 +171,13 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
         vanha_ranking = ""
         uusi_ranking = ""
         for p in vanha_tilanne:
-            vanha_ranking += f"{p[0]}, {p[1]} pistettä\n"
+            vanha_ranking += f"{p[0]} {p[1]} pistettä,\n"
         for p in uusi_tilanne:
-            uusi_ranking += f"{p[0]}, {p[1]} pistettä\n"
+            uusi_ranking += f"{p[0]} {p[1]} pistettä,\n"
         kerrottava = f"Pistetilanne päivittynyt!\n\nUusi tilanne:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
         palaute.append(kerrottava)
     
-    # TOgiDO - korjaa tätä
+    # TODO - korjaa tätä
     for i in range(len(vanhojen_lista)):
         kerrottava = ""
         if len(vanhojen_lista[i].pelit) != len(uusien_lista[i].pelit):
@@ -190,26 +190,29 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     return palaute
 
 def twiittaa(teksti: str, api: 'tweepy.api.API'):
-    if len(teksti) <= 280:
-        api.update_status(teksti)
-    else:
-        pilkottu = teksti.split("\n")
-        postattavat = []
-        while sum([len(patka) + len(pilkottu) - 1 for patka in pilkottu]) > 280:
-            yksittainen_twiitti = ""
-            while True:
-                yksittainen_twiitti += pilkottu[0] + "\n"
-                pilkottu.pop(0)
-                if len(pilkottu) == 0 or len(yksittainen_twiitti) + len(pilkottu[0]) > 279:
-                    break
-            postattavat.append(yksittainen_twiitti)
-        postattavat.append("\n".join(pilkottu))
+    thread = threader.Thread(api)
+    username = 'UnelmienP'
+    thread.post_thread(teksti, username)
+    
+    # if len(teksti) <= 280:
+    #     api.update_status(teksti)
+    # else:
+    #     pilkottu = teksti.split("\n")
+    #     postattavat = []
+    #     while sum([len(patka) + len(pilkottu) - 1 for patka in pilkottu]) > 280:
+    #         yksittainen_twiitti = ""
+    #         while True:
+    #             yksittainen_twiitti += pilkottu[0] + "\n"
+    #             pilkottu.pop(0)
+    #             if len(pilkottu) == 0 or len(yksittainen_twiitti) + len(pilkottu[0]) > 279:
+    #                 break
+    #         postattavat.append(yksittainen_twiitti)
+    #     postattavat.append("\n".join(pilkottu))
         
-        edellinen_postattu = api.update_status(postattavat[0]).id
-        for postattava in postattavat[1:]:
-            edellinen_postattu = api.update_status(status=postattava, 
-                                 in_reply_to_status_id=edellinen_postattu.id, 
-                                 auto_populate_reply_metadata=True)
+    #     edellinen_postattu = api.update_status(postattavat[0]).id
+    #     for postattava in postattavat[1:]:
+    #         edellinen_postattu = api.update_status(status=postattava, 
+    #         in_reply_to_status_id=edellinen_postattu.id, auto_populate_reply_metadata=True)
         
         # tai sitten näin
         # for postattava in postattavat:
