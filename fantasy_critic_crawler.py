@@ -167,14 +167,42 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     
     vanha_tilanne = sorted([(kisailija.nimi, kisailija.kokonaispisteet) for kisailija in vanhojen_lista], key=lambda p: p[1], reverse=True)
     uusi_tilanne = sorted([(kisailija.nimi, kisailija.kokonaispisteet) for kisailija in uusien_lista], key=lambda p: p[1], reverse=True)
+    
+    def lisaa_sijoitukset_tilanteeseen(tilanne: list) -> list:
+        for n in range(len(tilanne)):
+            tilanne[n] = (tilanne[n][0], tilanne[n][1], n + 1)
+        return tilanne
+    
+    vanha_tilanne = lisaa_sijoitukset_tilanteeseen(vanha_tilanne)
+    uusi_tilanne = lisaa_sijoitukset_tilanteeseen(uusi_tilanne)
+    
     if vanha_tilanne != uusi_tilanne:
-        vanha_ranking = ""
-        uusi_ranking = ""
-        for p in vanha_tilanne:
-            vanha_ranking += f"{p[0]} {p[1]},\n"
-        for p in uusi_tilanne:
-            uusi_ranking += f"{p[0]} {p[1]},\n"
-        kerrottava = f"Pistetilanne päivittynyt!\n\nUusi tilanne:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
+        kerrottava = "Pistetilanne päivittynyt!\nUusi tilanne:\n"
+        for i in uusi_tilanne:
+            for j in vanha_tilanne:
+                if i[0] == j[0]:
+                    if i[2] != j[2]:
+                        lisays_sija = f"{j[2]}. -> {i[2]}. {i[0]}: "
+                    else:
+                        lisays_sija = f"{i[2]}. {i[0]}: "
+                    kerrottava += lisays_sija
+                    if i[1] != j[1]:
+                        lisays_pisteet = f"{j[1]} -> {i[1]} p.\n"
+                    else:
+                        lisays_pisteet = f"{i[1]} p.\n"
+                    kerrottava += lisays_pisteet
+                    break
+            else:
+                print("Virhe: Ei löytynyt vertailussa vastaavaa nimeä")
+
+        # vanha_ranking = ""
+        # uusi_ranking = ""
+        # for p in vanha_tilanne:
+        #     vanha_ranking += f"{p[0]} {p[1]},\n"
+        # for p in uusi_tilanne:
+        #     uusi_ranking += f"{p[0]} {p[1]},\n"
+        # kerrottava = f"Pistetilanne päivittynyt!\n\nUusi tilanne:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
+        
         palaute.append(kerrottava)
     
     # TODO - korjaa tätä
