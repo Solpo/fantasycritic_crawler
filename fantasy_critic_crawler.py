@@ -201,7 +201,7 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
         #     vanha_ranking += f"{p[0]} {p[1]},\n"
         # for p in uusi_tilanne:
         #     uusi_ranking += f"{p[0]} {p[1]},\n"
-        # kerrottava = f"Pistetilanne päivittynyt!\n\nUusi tilanne:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
+        # kerrottava = f"Tilanne elää:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
         
         palaute.append(kerrottava)
     
