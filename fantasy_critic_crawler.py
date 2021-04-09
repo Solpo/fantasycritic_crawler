@@ -194,24 +194,36 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
                     break
             else:
                 print("Virhe: Ei löytynyt vertailussa vastaavaa nimeä")
-
-        # vanha_ranking = ""
-        # uusi_ranking = ""
-        # for p in vanha_tilanne:
-        #     vanha_ranking += f"{p[0]} {p[1]},\n"
-        # for p in uusi_tilanne:
-        #     uusi_ranking += f"{p[0]} {p[1]},\n"
-        # kerrottava = f"Tilanne elää:\n{uusi_ranking}\nVanha tilanne:\n{vanha_ranking}"
         
         palaute.append(kerrottava)
-    
-    # TODO - korjaa tätä
+
     for i in range(len(vanhojen_lista)):
         kerrottava = ""
-        if len(vanhojen_lista[i].pelit) != len(uusien_lista[i].pelit):
-            kerrottava += f"Pelaajalla {vanhojen_lista[i].nimi} on uusia pelejä!:\n"
-            for peli in uusien_lista[i].pelit[len(vanhojen_lista[i].pelit):]:
-                kerrottava += f"{peli[0]}\n"
+        pudotetut = []
+        for vanha_peli in vanhojen_lista[i].pelit:
+            for uusi_peli in uusien_lista[i].pelit:
+                if vanha_peli[0] == uusi_peli[0]:
+                    break
+            else:
+                pudotetut.append(vanha_peli[0])
+        if pudotetut != []:
+            kerrottava += f"{vanhojen_lista[i].nimi} on pudottanut pelejä!:\n"
+            pudotetut_string = ", ".join(pudotetut)
+            kerrottava = kerrottava + pudotetut_string + "."
+
+        ostetut = []
+        for uusi_peli in uusien_lista[i].pelit:
+            for vanha_peli in vanhojen_lista[i].pelit:
+                if uusi_peli[0] == vanha_peli[0]:
+                    break
+            else:
+                ostetut.append(uusi_peli[0])
+        if ostetut != []:
+            if pudotetut != []:
+                kerrottava += " "
+            kerrottava += f"{vanhojen_lista[i].nimi} on ostanut pelejä!:\n"
+            ostetut_string = ", ".join(ostetut)
+            kerrottava = kerrottava + ostetut_string + "."
         if kerrottava != "":
             palaute.append(kerrottava)
     
