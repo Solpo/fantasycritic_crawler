@@ -177,7 +177,7 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     uusi_tilanne = lisaa_sijoitukset_tilanteeseen(uusi_tilanne)
     
     if vanha_tilanne != uusi_tilanne:
-        kerrottava = "Pistetilanne päivittynyt!\nUusi tilanne:\n"
+        kerrottava = "Tilanne elää!\nUusi tilanne:\n"
         for i in uusi_tilanne:
             for j in vanha_tilanne:
                 if i[0] == j[0]:
