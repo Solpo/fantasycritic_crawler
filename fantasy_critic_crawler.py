@@ -177,7 +177,7 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     uusi_tilanne = lisaa_sijoitukset_tilanteeseen(uusi_tilanne)
     
     if vanha_tilanne != uusi_tilanne:
-        kerrottava = "Tilanne elää!\nUusi tilanne:\n"
+        kerrottava = "Tilanne elää!\n"
         for i in uusi_tilanne:
             for j in vanha_tilanne:
                 if i[0] == j[0]:
@@ -230,9 +230,12 @@ def vertaa_pelaajalistoja(vanhojen_lista: list, uusien_lista: list) -> str:
     return palaute
 
 def twiittaa(teksti: str, api: 'tweepy.api.API'):
-    thread = threader.Thread(api)
-    username = 'UnelmienP'
-    thread.post_thread(teksti, username)
+    if len(teksti) <= 280:
+        api.update_status(teksti)
+    else:
+        thread = threader.Thread(api)
+        username = 'UnelmienP'
+        thread.post_thread(teksti, username)
     
     # if len(teksti) <= 280:
     #     api.update_status(teksti)
@@ -314,7 +317,7 @@ async def main():
         api = tweepy.API(auth, wait_on_rate_limit=True,
             wait_on_rate_limit_notify=True)
         for i in vertailun_palaute:
-            twiittaa(f"{asetukset['nimi']}:\n{i}", api)
+            twiittaa(f"{asetukset['nimi']}: {i}", api)
         
 
         # tänne viikottaiset spämmikoosteet:
