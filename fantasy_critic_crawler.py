@@ -9,7 +9,7 @@ class Julkaisija:
 
     async def init(self, page: "Page", peleja: int):
         # print(f"Haetaan pelaajan nimi, peleja on {peleja}")
-        self.nimi = (await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)", page))
+        self.nimi = str(await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)", page)).strip()
         self.kokonaispisteet = int(await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({str(peleja + 2)}) > td:nth-child(2)", page))
         self.pelit = []
         for i in range(1, peleja + 1):
