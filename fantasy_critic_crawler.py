@@ -278,13 +278,15 @@ async def main():
     
     print(f"Käsitellään liiga {asetukset['nimi']}")
     browser = await launch(executablePath='/usr/bin/chromium')
+    print("Selain avattu")
     page = await browser.newPage()
+    print("page luotu")
     
     await page.goto(asetukset["liiga"])
     
     pelaajat = []
     for pelaajan_nro in range(1, asetukset["pelaajia"] + 1):
-        # print(f"Käsitellään pelaaja {pelaajan_nro}")
+        print(f"Käsitellään pelaaja {pelaajan_nro}")
         pelaajat.append(Julkaisija(pelaajan_nro))
         await pelaajat[pelaajan_nro - 1].init(page, asetukset["peleja"])
 
