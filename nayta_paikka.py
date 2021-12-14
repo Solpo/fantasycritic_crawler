@@ -13,7 +13,7 @@ async def main():
     browser = await launch(executablePath='/usr/bin/chromium')
     page = await browser.newPage()
     # kissoja ja pelailua
-    await page.goto('https://www.fantasycritic.games/league/fb4b4799-2b50-45d1-803b-658a7dddf3f6/2020')
+    await page.goto('https://www.fantasycritic.games/league/fb4b4799-2b50-45d1-803b-658a7dddf3f6/2021')
     
     
     while True:

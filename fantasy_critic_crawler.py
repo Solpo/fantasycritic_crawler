@@ -9,7 +9,7 @@ class Julkaisija:
 
     async def init(self, page: "Page", peleja: int):
         # print(f"Haetaan pelaajan nimi, peleja on {peleja}")
-        self.nimi = str(await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)", page)).strip()
+        self.nimi = str(await paikka_tekstiksi(f"#__BVID__36 > tbody:nth-child(2) > tr:nth-child({self.numero_str}) > td:nth-child(2) > span:nth-child(1) > a:nth-child(1)", page)).strip()
         self.kokonaispisteet = int(await paikka_tekstiksi(f"div.col-xl-6:nth-child({self.numero_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({str(peleja + 2)}) > td:nth-child(2)", page))
         self.pelit = []
         for i in range(1, peleja + 1):
@@ -19,7 +19,8 @@ class Julkaisija:
             # print(f"Lisätään pelaajan pelilistaan {pelin_nimi}, {kriitikot}, {pisteet}")
             self.pelit.append([pelin_nimi, kriitikot, pisteet])
 
-        self.counterpick = await self.pelin_tiedot(self.numero, peleja + 1, page)
+        self.counterpick = await self.counterpickin_tiedot(self.numero, peleja + 1, page)
+        # print(f"Pelaajan {self.nimi} counterpick on {self.counterpick}")
 
     def __str__(self):
         return f"Julkaisija({self.numero}, {self.nimi}, {self.kokonaispisteet}, {self.pelit}"
@@ -32,7 +33,7 @@ class Julkaisija:
         pelaaja_str = str(pelaaja)
         peli_str = str(peli)
         try:
-            paikka = f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child(1) > span:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(1) > span:nth-child(2)"
+            paikka = f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child(1) > span:nth-child(1) > span:nth-child(1) > span:nth-child(3) > div:nth-child(1) > div:nth-child(1) > span:nth-child(1) > span:nth-child(2)"
             pelin_nimi = await paikka_tekstiksi(paikka, page)
             pelin_nimi = pelin_nimi.strip()
         except:
@@ -40,6 +41,29 @@ class Julkaisija:
         if pelin_nimi == "":
             return (None, None, None)
 
+        # print("Tsekataan kriitikoiden ja pisteiden paikka")
+        kriitikot_paikka, pisteet_paikka = [f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child({sarake})" for sarake in range(2, 4)]
+        # print("Haetaan kriitikoiden pisteet")
+        kriitikot = await paikka_tekstiksi(kriitikot_paikka, page)
+        # print(f"Jotka ovat {kriitikot}")
+        # print("Haetaan fantasy-pisteet")
+        pisteet = await paikka_tekstiksi(pisteet_paikka, page)
+        # print(f"Jotka ovat {pisteet}")
+        kriitikot = int(kriitikot) if kriitikot != "--" and kriitikot != None else 0
+        pisteet = int(pisteet) if pisteet != "--" and pisteet != None else 0
+        return (pelin_nimi, kriitikot, pisteet)
+
+    async def counterpickin_tiedot(self, pelaaja: int, peli: int, page: "Page") -> tuple:
+        pelaaja_str = str(pelaaja)
+        peli_str = str(peli)
+        try:
+            paikka = f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child(1) > span:nth-child(1) > span:nth-child(1) > span:nth-child(4) > div:nth-child(1) > div:nth-child(1) > span:nth-child(1) > span:nth-child(2)"
+            pelin_nimi = await paikka_tekstiksi(paikka, page)
+            pelin_nimi = pelin_nimi.strip()
+        except:
+            return (None, None, None)
+        if pelin_nimi == "":
+            return (None, None, None)
         # print("Tsekataan kriitikoiden ja pisteiden paikka")
         kriitikot_paikka, pisteet_paikka = [f"div.col-xl-6:nth-child({pelaaja_str}) > div:nth-child(2) > table:nth-child(2) > tbody:nth-child(2) > tr:nth-child({peli_str}) > td:nth-child({sarake})" for sarake in range(2, 4)]
         # print("Haetaan kriitikoiden pisteet")
